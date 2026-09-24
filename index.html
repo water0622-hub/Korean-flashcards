@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Travel 韓語旅行字卡 (完整資料庫版)</title>
+    <style>
+        :root {
+            --primary: #0047A0; 
+            --secondary: #CD2E3A; 
+            --bg-color: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --text-color: #333333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); margin-bottom: 5px; text-align: center; }
+        .subtitle { color: #666; margin-bottom: 30px; text-align: center; }
+
+        #categoryView, #cardsView {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #cardsView { display: none; }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+        .cat-btn {
+            background-color: var(--card-bg);
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 30px 20px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .cat-btn:hover { background-color: var(--primary); color: white; transform: translateY(-5px); }
+        .cat-btn .count { font-size: 14px; font-weight: normal; opacity: 0.8; }
+
+        .top-bar {
+            display: flex;
+            width: 100%;
+            gap: 10px;
+            margin-bottom: 25px;
+            align-items: stretch;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+        .action-btn:hover { background-color: #5a6268; }
+        .action-btn.import { background-color: #28a745; }
+        .action-btn.import:hover { background-color: #218838; }
+        .action-btn.export { background-color: #17a2b8; }
+        .action-btn.export:hover { background-color: #138496; }
+
+        .add-card-container {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            min-width: 300px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--primary); }
+
+        button.add-btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        button.add-btn:hover { background-color: #a82530; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+        .card {
+            background-color: transparent;
+            width: 100%;
+            height: 160px;
+            perspective: 1000px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .drag-handle {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 6px;
+            background-color: #ccc;
+            border-radius: 10px;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .card:hover .drag-handle { opacity: 1; }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 12px;
+        }
+
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            padding: 15px;
+            box-sizing: border-box;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .card-front {
+            background-color: var(--card-bg);
+            color: var(--primary);
+            border: 2px solid #e0e0e0;
+            flex-direction: column;
+        }
+
+        .edit-zh-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 71, 160, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+            z-index: 10;
+        }
+        .edit-zh-btn:hover { background: rgba(0, 71, 160, 0.2); transform: scale(1.1); }
+
+        .card-back {
+            background-color: var(--primary);
+            color: white;
+            transform: rotateY(180deg);
+            flex-direction: column;
+        }
+        
+        .card-back .ko-text { font-size: 20px; margin-bottom: 6px; }
+        .card-back .zh-text { font-size: 14px; margin-bottom: 6px; font-weight: normal; opacity: 0.9; }
+        
+        .ph-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .ph-text { font-size: 15px; color: #FFD700; font-weight: bold; }
+        .edit-ph-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .edit-ph-btn:hover { background: rgba(255, 255, 255, 0.4); transform: scale(1.1); }
+
+        .card-back .play-icon { font-size: 12px; opacity: 0.8; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 12px; }
+
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            line-height: 24px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 10;
+            padding: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .card.dragging { opacity: 0.5; transform: scale(0.95); }
+        .card.drag-over { border: 2px dashed var(--secondary); border-radius: 12px; }
+
+        /* 彈窗設計 (共用) */
+        .modal {
+            display: none; 
+            position: fixed; z-index: 100; left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .modal h3 { margin: 0; color: var(--primary); }
+        .modal textarea {
+            width: 100%; height: 150px;
+            padding: 10px; border: 1px solid #ccc;
+            border-radius: 6px; font-family: monospace;
+            resize: vertical; box-sizing: border-box;
+            white-space: pre-wrap;
+        }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <h1>✈️ K-Travel 韓語旅行字卡</h1>
+    <div class="subtitle" id="mainSubtitle">單機專屬版：支援拖曳排序、中韓自訂編輯與批次匯入/匯出</div>
+
+    <div id="categoryView">
+        <div class="category-grid" id="categoryGrid"></div>
+    </div>
+
+    <div id="cardsView">
+        <div class="top-bar">
+            <button class="action-btn" onclick="goBack()">🔙 返回</button>
+            <button class="action-btn import" onclick="openImportModal()">📥 批次匯入</button>
+            <button class="action-btn export" onclick="openExportModal()">📤 批次匯出</button>
+            <div class="add-card-container">
+                <input type="text" id="newPhrase" placeholder="輸入中文或韓文 (自動翻譯)...">
+                <button class="add-btn" id="addBtn" onclick="addNewPhrase()">智慧翻譯</button>
+            </div>
+        </div>
+        <h2 id="currentCategoryTitle" style="color: var(--primary); margin-top: 0;"></h2>
+        <div class="grid" id="cardGrid"></div>
+    </div>
+
+    <!-- 匯入資料彈窗 -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <h3>📥 批次匯入字卡</h3>
+            <p style="margin:0; font-size:14px; color:#666;">
+                請將字卡文字貼在下方，每行一句。格式為：<code>中文,韓文,諧音</code>
+            </p>
+            <textarea id="importText" placeholder="範例：
+冰美式,아이스 아메리카노,阿以斯 阿美哩卡諾
+外帶,테이크아웃,貼伊克阿物"></textarea>
+            <div class="modal-actions">
+                <button class="action-btn" style="background:#dc3545;" onclick="closeImportModal()">取消</button>
+                <button class="action-btn import" onclick="processImport()">確認匯入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 匯出資料彈窗 -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <h3>📤 批次匯出字卡</h3>
+            <p style="margin:0; font-size:14px; color:#666;">
+                以下為「<span id="exportCatName"></span>」的字卡資料。您可以複製這些文字貼到 Excel 備份，或分享給朋友匯入。
+            </p>
+            <textarea id="exportText" readonly style="background-color: #f8f9fa; cursor: pointer;" onclick="this.select()"></textarea>
+            <div class="modal-actions">
+                <button class="action-btn" style="background:#dc3545;" onclick="closeExportModal()">關閉</button>
+                <button class="action-btn export" onclick="copyExportText()">📋 複製全部文字</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 載入使用者指定的完整字卡庫
+        const defaultData = {
+            "greetings": { 
+                name: "👋 基本問候", 
+                phrases: [
+                    { zh: "你好", ko: "안녕하세요", ph: "安妞哈誰喲" },
+                    { zh: "謝謝", ko: "감사합니다", ph: "康桑哈米達" },
+                    { zh: "對不起", ko: "죄송합니다", ph: "催松哈米達" },
+                    { zh: "是 / 好", ko: "네", ph: "內" },
+                    { zh: "不是", ko: "아니요", ph: "阿尼唷" },
+                    { zh: "不用了，謝謝", ko: "아니요, 감사합니다.", ph: "阿尼喲，卡桑哈米達" },
+                    { zh: "拜託您了", ko: "부탁합니다", ph: "普塔卡米達" },
+                    { zh: "沒關係", ko: "괜찮아요", ph: "坤恰納唷" },
+                    { zh: "請問/不好意思", ko: "저기요", ph: "秋基唷" },
+                    { zh: "再見 (對留下來的人)", ko: "안녕히 계세요", ph: "安妞嘻 給誰喲" },
+                    { zh: "再見 (對離開的人)", ko: "안녕히 가세요", ph: "安妞嘻 卡誰喲" },
+                    { zh: "辛苦了", ko: "수고하셨습니다", ph: "蘇勾哈休斯米達" },
+                    { zh: "很高興認識你", ko: "만나서 반갑습니다", ph: "曼納索 胖嘎斯米達" }
+                ] 
+            },
+            "communication": { 
+                name: "💬 溝通表達", 
+                phrases: [
+                    { zh: "我不知道", ko: "모르겠어요", ph: "摸嚕給索唷" },
+                    { zh: "我知道了", ko: "알겠습니다", ph: "阿給斯米達" },
+                    { zh: "請再說一次", ko: "다시 한번 말씀해 주세요", ph: "塔西 喊崩 瑪斯妹 珠ㄙㄟ唷" },
+                    { zh: "會說中文嗎？", ko: "중국어 할 줄 아세요?", ph: "忠古勾 哈 珠 阿ㄙㄟ唷？" },
+                    { zh: "這是什麼？", ko: "이게 뭐예요?", ph: "以給 摸耶唷？" },
+                    { zh: "稍等一下", ko: "잠깐만요", ph: "江干曼唷" },
+                    { zh: "真漂亮", ko: "정말 예뻐요", ph: "瓊買 耶波唷" },
+                    { zh: "太棒了", ko: "최고예요", ph: "崔勾耶唷" },
+                    { zh: "好可愛", ko: "귀여워요", ph: "ㄎㄨㄧ唷我唷" },
+                    { zh: "沒錯", ko: "맞아요", ph: "馬札唷" },
+                    { zh: "不行", ko: "안 돼요", ph: "安 堆唷" },
+                    { zh: "可以拍照嗎？", ko: "사진 찍어도 되나요?", ph: "沙金 幾勾豆 堆拿唷？" }
+                ] 
+            },
+            "transportation": { 
+                name: "🚇 交通問路", 
+                phrases: [
+                    { zh: "地鐵站在哪裡？", ko: "지하철역이 어디에 있어요?", ph: "機哈秋由基 歐低耶 依索唷？" },
+                    { zh: "公車站在哪裡？", ko: "버스 정류장이 어디에 있어요?", ph: "波斯 瓊留江伊 歐低耶 依索唷？" },
+                    { zh: "請到這個地址", ko: "이 주소로 가주세요", ph: "依 珠搜摟 咖珠ㄙㄟ唷" },
+                    { zh: "要在哪裡下車？", ko: "어디서 내려야 해요?", ph: "歐低索 內留亞 黑唷？" },
+                    { zh: "請停車", ko: "세워주세요", ph: "ㄙㄟ我珠ㄙㄟ唷" },
+                    { zh: "到機場要多久？", ko: "공항까지 얼마나 걸려요?", ph: "空航嘎基 歐馬納 扣留唷？" },
+                    { zh: "請問廁所在哪裡？", ko: "화장실이 어디에 있어요?", ph: "花江系哩 歐低耶 依索唷？" },
+                    { zh: "請給我一張票", ko: "표 한 장 주세요", ph: "漂 喊 江 珠ㄙㄟ唷" },
+                    { zh: "幫我叫計程車", ko: "택시 좀 불러주시겠어요?", ph: "泰克西 炯 普摟珠西給索唷？" },
+                    { zh: "我迷路了", ko: "길을 잃었어요", ph: "基日 宜漏索唷" }
+                ] 
+            },
+            "restaurant": { 
+                name: "🍗 餐廳點餐", 
+                phrases: [
+                    { zh: "不好意思(叫店員)", ko: "저기요", ph: "秋基呦" },
+                    { zh: "有位子嗎?", ko: "자리 있어요?", ph: "差李依搜呦" },
+                    { zh: "四個人", ko: "네 명이요", ph: "內 盟依唷" },
+                    { zh: "我們有四個人，有位子嗎？", ko: "네 명인데, 자리 있어요?", ph: "內 盟印嗲，差李依搜呦" },
+                    { zh: "請給我菜單", ko: "메뉴판 좀 주세요", ph: "咩妞判 炯 啾誰呦" },
+                    { zh: "有中文菜單嗎？", ko: "중국어 메뉴 있어요?", ph: "中估勾 美妞 以搜呦？" },
+                    { zh: "我要這個", ko: "이거 주세요", ph: "依勾 啾誰喲" },
+                    { zh: "我要一份這個", ko: "이거 하나 주세요", ph: "依勾 哈那 啾誰呦" },
+                    { zh: "不要辣", ko: "안 맵게 해주세요", ph: "安 妹給 黑啾誰呦" },
+                    { zh: "多少錢？", ko: "얼마예요?", ph: "歐瑪耶呦？" },
+                    { zh: "請給我水", ko: "물 좀 주세요", ph: "木 炯 啾誰呦" },
+                    { zh: "請給我一杯可樂", ko: "콜라 하나 주세요", ph: "Cola 哈那 啾誰呦" },
+                    { zh: "請給我飯", ko: "밥 주세요", ph: "怕 啾誰呦" },
+                    { zh: "請給我筷子", ko: "젓가락 주세요", ph: "秋噶拉 啾誰呦" },
+                    { zh: "請給我啤酒", ko: "맥주 주세요", ph: "妹珠 啾誰呦" },
+                    { zh: "請多給一些小菜", ko: "반찬 더 주세요", ph: "潘餐 兜 啾誰呦" },
+                    { zh: "再給我一點", ko: "더 주세요", ph: "兜 啾誰呦" },
+                    { zh: "我吃飽了", ko: "잘 먹었습니다", ph: "柴某溝思密達" },
+                    { zh: "請給我兩人份五花肉", ko: "삼겹살 2인분 주세요", ph: "三啾賽 依恩奔 啾誰喲" },
+                    { zh: "可以打包嗎？", ko: "포장 가능해요?", ph: "坡將 卡能黑呦？" },
+                    { zh: "請幫我結帳", ko: "계산 해주세요", ph: "給山 黑啾誰呦" },
+                    { zh: "我要結帳", ko: "계산할게요", ph: "給山 哈給呦" },
+                    { zh: "結帳", ko: "계산이요", ph: "給山 依呦" },
+                    { zh: "可以刷卡嗎？", ko: "카드 돼요?", ph: "Card 對呦？" },
+                    { zh: "真的很好吃", ko: "진짜 맛있어요", ph: "金家 馬西搜呦" },
+                    { zh: "有什麼推薦的嗎？", ko: "추천해 주시겠어요?", ph: "區村黑 珠西給索唷？" },
+                    { zh: "我要外帶", ko: "포장이요", ph: "坡將 依呦" },
+                    { zh: "謝謝", ko: "감사합니다", ph: "康桑哈米達" }
+                ] 
+            },
+            "shopping": { 
+                name: "🛍️ 購物消費", 
+                phrases: [
+                    { zh: "請給我這個", ko: "이거 주세요.", ph: "依勾 啾誰喲" },
+                    { zh: "有這個嗎？", ko: "이거 있어요?", ph: "依勾 依搜喲" },
+                    { zh: "多少錢?", ko: "얼마예요?", ph: "歐瑪耶呦?" },
+                    { zh: "這個多少錢？", ko: "이거 얼마예요?", ph: "依勾 歐馬耶唷？" },
+                    { zh: "可以算便宜一點嗎？", ko: "조금 깎아 주시겠어요?", ph: "秋根 嘎嘎 珠西給索唷？" },
+                    { zh: "可以刷卡嗎?", ko: "카드 돼요?", ph: "卡德 堆喲？" },
+                    { zh: "有袋子嗎?", ko: "봉투 주세요", ph: "崩兔 啾誰喲" },
+                    { zh: "不用袋子", ko: "봉투 안 주세요", ph: "崩兔 安 啾誰喲" },
+                    { zh: "有其他顏色嗎？", ko: "다른 색상 있나요?", ph: "塔冷 誰商 尹拿唷？" },
+                    { zh: "我可以試穿嗎？", ko: "입어봐도 되나요?", ph: "宜波巴豆 堆拿唷？" },
+                    { zh: "有大一點的尺寸嗎？", ko: "더 큰 사이즈 있나요?", ph: "偷 肯 賽珠 尹拿唷？" },
+                    { zh: "請給我收據", ko: "영수증 주세요", ph: "勇蘇曾 珠ㄙㄟ唷" },
+                    { zh: "我要退稅", ko: "택스 리펀드 해주세요", ph: "泰克斯 哩彭德 黑珠ㄙㄟ唷" },
+                    { zh: "我只是看看", ko: "그냥 보는 거예요", ph: "可娘 波能 勾耶唷" },
+                    { zh: "請幫我包裝", ko: "포장해 주세요", ph: "剖江黑 珠ㄙㄟ唷" },
+                    { zh: "太貴了", ko: "너무 비싸요", ph: "弄姆 批沙唷" }
+                ] 
+            },
+            "hotel": { 
+                name: "🏨 飯店住宿", 
+                phrases: [
+                    { zh: "我要辦理入住", ko: "체크인 할게요", ph: "雀克音 哈給唷" },
+                    { zh: "我要退房", ko: "체크아웃 할게요", ph: "雀克阿物 哈給唷" },
+                    { zh: "可以寄放行李嗎？", ko: "짐을 맡길 수 있나요?", ph: "基悶 馬基 蘇 尹拿唷？" },
+                    { zh: "房間沒有熱水", ko: "따뜻한 물이 안 나와요", ph: "打德炭 姆哩 安 拿哇唷" },
+                    { zh: "請幫我打掃房間", ko: "방 청소 좀 부탁드려요", ph: "乓 瓊搜 炯 普塔的留唷" },
+                    { zh: "請給我新毛巾", ko: "수건 좀 바꿔주세요", ph: "蘇恭 炯 帕瓜珠ㄙㄟ唷" },
+                    { zh: "Wi-Fi密碼是什麼？", ko: "와이파이 비밀번호가 뭐예요?", ph: "哇伊派伊 批米波諾嘎 摸耶唷？" },
+                    { zh: "包含早餐嗎？", ko: "조식 포함인가요?", ph: "秋西 剖哈民嘎唷？" },
+                    { zh: "我的房卡不見了", ko: "객실 키를 잃어버렸어요", ph: "給系 欺日 宜漏波留索唷" },
+                    { zh: "可以借轉接頭嗎？", ko: "어댑터 빌릴 수 있나요?", ph: "歐爹偷 批哩 蘇 尹拿唷？" }
+                ] 
+            }
+        };
+
+        let appData = {};
+        let currentCatKey = null;
+        let dragSrcEl = null;
+        let dragSrcIndex = null;
+
+        const categoryView = document.getElementById('categoryView');
+        const cardsView = document.getElementById('cardsView');
+        const categoryGrid = document.getElementById('categoryGrid');
+        const cardGrid = document.getElementById('cardGrid');
+        const inputField = document.getElementById('newPhrase');
+        const addBtn = document.getElementById('addBtn');
+        const currentCategoryTitle = document.getElementById('currentCategoryTitle');
+        const subtitle = document.getElementById('mainSubtitle');
+
+        function initApp() {
+            // 版本號推升至 V5，確保載入你提供的這批最新預設字卡
+            const savedData = localStorage.getItem('kTravelData_V5');
+            if (savedData) {
+                appData = JSON.parse(savedData);
+            } else {
+                appData = JSON.parse(JSON.stringify(defaultData)); 
+                saveData();
+            }
+            renderCategories();
+        }
+
+        function saveData() { localStorage.setItem('kTravelData_V5', JSON.stringify(appData)); }
+
+        function renderCategories() {
+            categoryGrid.innerHTML = '';
+            for (const key in appData) {
+                const cat = appData[key];
+                const btn = document.createElement('button');
+                btn.className = 'cat-btn';
+                btn.onclick = () => openCategory(key);
+                btn.innerHTML = `${cat.name}<span class="count">共 ${cat.phrases.length} 句</span>`;
+                categoryGrid.appendChild(btn);
+            }
+        }
+
+        function openCategory(key) {
+            currentCatKey = key;
+            categoryView.style.display = 'none';
+            cardsView.style.display = 'flex';
+            subtitle.style.display = 'none';
+            currentCategoryTitle.innerText = appData[key].name;
+            renderCards();
+        }
+
+        function goBack() {
+            currentCatKey = null;
+            cardsView.style.display = 'none';
+            categoryView.style.display = 'flex';
+            subtitle.style.display = 'block';
+            inputField.value = '';
+            renderCategories(); 
+        }
+
+        function renderCards() {
+            cardGrid.innerHTML = '';
+            const phrases = appData[currentCatKey].phrases;
+            
+            phrases.forEach((phrase, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.setAttribute('draggable', 'true');
+                card.dataset.index = index;
+                
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('dragenter', handleDragEnter);
+                card.addEventListener('dragleave', handleDragLeave);
+                card.addEventListener('drop', handleDrop);
+                card.addEventListener('dragend', handleDragEnd);
+
+                card.onclick = () => flipAndSpeak(card, phrase.ko);
+                
+                const phDisplay = phrase.ph ? `諧音：${phrase.ph}` : '無諧音 (請聽發音)';
+
+                card.innerHTML = `
+                    <div class="drag-handle"></div>
+                    <button class="delete-btn" onclick="deleteCard(event, ${index})" title="刪除卡片">✕</button>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <span>${phrase.zh}</span>
+                            <button class="edit-zh-btn" onclick="editChinese(event, ${index})" title="編輯中文">✏️</button>
+                        </div>
+                        <div class="card-back">
+                            <div class="ko-text">${phrase.ko}</div>
+                            <div class="zh-text">${phrase.zh}</div>
+                            <div class="ph-container">
+                                <span class="ph-text">${phDisplay}</span>
+                                <button class="edit-ph-btn" onclick="editHomophone(event, ${index})" title="編輯諧音">✏️</button>
+                            </div>
+                            <div class="play-icon">🔊 點擊重播</div>
+                        </div>
+                    </div>
+                `;
+                cardGrid.appendChild(card);
+            });
+        }
+
+        /* ----- 匯入功能 ----- */
+        const importModal = document.getElementById('importModal');
+        
+        function openImportModal() { importModal.style.display = 'flex'; }
+        function closeImportModal() { 
+            importModal.style.display = 'none'; 
+            document.getElementById('importText').value = '';
+        }
+
+        function processImport() {
+            const textInput = document.getElementById('importText').value.trim();
+            let newItemsCount = 0;
+
+            if (textInput) {
+                const lines = textInput.split('\n');
+                lines.forEach(line => {
+                    const parts = line.split(/[,	]/); 
+                    if (parts.length >= 2) {
+                        const zh = parts[0].trim();
+                        const ko = parts[1].trim();
+                        const ph = parts[2] ? parts[2].trim() : "";
+                        if (zh && ko) {
+                            appData[currentCatKey].phrases.push({ zh, ko, ph }); // 匯入加在最後面
+                            newItemsCount++;
+                        }
+                    }
+                });
+            }
+
+            if (newItemsCount > 0) {
+                saveData();
+                renderCards();
+                alert(`成功匯入 ${newItemsCount} 句字卡！`);
+                closeImportModal();
+            } else {
+                alert("找不到有效的字卡資料，請確認格式 (中文,韓文,諧音)。");
+            }
+        }
+
+        /* ----- 匯出功能 ----- */
+        const exportModal = document.getElementById('exportModal');
+
+        function openExportModal() {
+            const catName = appData[currentCatKey].name;
+            const phrases = appData[currentCatKey].phrases;
+            
+            document.getElementById('exportCatName').innerText = catName;
+            
+            const exportString = phrases.map(p => `${p.zh},${p.ko},${p.ph || ""}`).join('\n');
+            document.getElementById('exportText').value = exportString;
+            
+            exportModal.style.display = 'flex';
+        }
+
+        function closeExportModal() {
+            exportModal.style.display = 'none';
+        }
+
+        function copyExportText() {
+            const copyText = document.getElementById("exportText");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); 
+            
+            navigator.clipboard.writeText(copyText.value).then(() => {
+                alert("✅ 字卡資料已成功複製到剪貼簿！\n您可以直接貼到 Excel 或分享給其他人。");
+            }).catch(err => {
+                alert("複製失敗，請手動在文字框內全選並複製。");
+            });
+        }
+        /* ------------------ */
+
+        function editChinese(event, index) {
+            event.stopPropagation(); 
+            const phrase = appData[currentCatKey].phrases[index];
+            const newZh = prompt("請輸入或修改中文用語：", phrase.zh);
+            if (newZh !== null && newZh.trim() !== "") { 
+                phrase.zh = newZh.trim(); saveData(); renderCards(); 
+            }
+        }
+
+        function editHomophone(event, index) {
+            event.stopPropagation(); 
+            const phrase = appData[currentCatKey].phrases[index];
+            const newPh = prompt("請輸入或修改中文諧音：", phrase.ph || "");
+            if (newPh !== null) { 
+                phrase.ph = newPh.trim(); saveData(); renderCards(); 
+            }
+        }
+
+        function handleDragStart(e) {
+            dragSrcEl = this; dragSrcIndex = parseInt(this.dataset.index);
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+            this.classList.add('dragging');
+        }
+
+        function handleDragOver(e) { if (e.preventDefault) e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return false; }
+        function handleDragEnter(e) { this.classList.add('drag-over'); }
+        function handleDragLeave(e) { this.classList.remove('drag-over'); }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) e.stopPropagation(); 
+            if (dragSrcEl !== this) {
+                const dropIndex = parseInt(this.dataset.index);
+                const phrases = appData[currentCatKey].phrases;
+                const movedItem = phrases.splice(dragSrcIndex, 1)[0];
+                phrases.splice(dropIndex, 0, movedItem);
+                saveData(); renderCards();
+            }
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over'));
+        }
+
+        function flipAndSpeak(cardElement, koText) {
+            if (cardElement.classList.contains('dragging')) return;
+            if(!cardElement.classList.contains('flipped')) cardElement.classList.add('flipped');
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(koText);
+                utterance.lang = 'ko-KR'; utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function deleteCard(event, index) {
+            event.stopPropagation(); 
+            if(confirm("確定要刪除這張字卡嗎？")) {
+                appData[currentCatKey].phrases.splice(index, 1);
+                saveData(); renderCards();
+            }
+        }
+
+        async function addNewPhrase() {
+            if (!currentCatKey) return;
+            const inputText = inputField.value.trim();
+            if (!inputText) return alert("請先輸入用語！");
+
+            addBtn.disabled = true; addBtn.innerText = "翻譯中...";
+            const isKorean = /[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(inputText);
+            const langpair = isKorean ? "ko-KR|zh-TW" : "zh-TW|ko-KR";
+
+            try {
+                const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(inputText)}&langpair=${langpair}`);
+                const data = await response.json();
+                
+                if (data && data.responseData && data.responseData.translatedText) {
+                    const translated = data.responseData.translatedText;
+                    let zhText = isKorean ? translated : inputText;
+                    let koText = isKorean ? inputText : translated;
+                    
+                    appData[currentCatKey].phrases.unshift({ zh: zhText, ko: koText, ph: "" }); 
+                    saveData(); renderCards(); inputField.value = ''; 
+                } else alert("翻譯失敗，請稍後再試。");
+            } catch (error) { alert("網路連線錯誤，無法進行翻譯。"); } 
+            finally { addBtn.disabled = false; addBtn.innerText = "智慧翻譯"; }
+        }
+
+        inputField.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") { event.preventDefault(); addBtn.click(); }
+        });
+
+        initApp();
+    </script>
+</body>
+</html>
